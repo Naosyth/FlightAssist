@@ -20,6 +20,10 @@ namespace IngameScript
     {
         public class Helpers
         {
+            public const double halfPi = Math.PI / 2;
+            public const double radToDeg = 180 / Math.PI;
+            public const double degToRad = Math.PI / 180;
+
             public static double NotNan(double val)
             {
                 if (double.IsNaN(val)) return 0;

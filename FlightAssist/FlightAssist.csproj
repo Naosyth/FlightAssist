@@ -96,6 +96,7 @@
     <Analyzer Include="C:\Users\Naosyth\AppData\Local\Microsoft\VisualStudio\15.0_90fdab4c\Extensions\l2l0jyjc.j2d\Analyzers\MDKAnalyzer.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConfigReader.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Module.cs" />
     <Compile Include="GyroController.cs" />

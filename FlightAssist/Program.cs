@@ -18,40 +18,32 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
-        // TODO: Read from custom data?
-        const string remoteBlockName = "FA Remote";
-        const string textPanelName = "FA Screen";
-        const string gyroGroupName = "FA Gyros";
-        const string spaceMainThrust = "backward";
-
-        const double halfPi = Math.PI / 2;
-        const double radToDeg = 180 / Math.PI;
-        const double degToRad = Math.PI / 180;
-
-        const int gyroResponsiveness = 8;
-        const double minGyroRpmScale = 0.001;
-        const double gyroVelocityScale = 0.2;
+        private ConfigReader configReader;
 
         public IMyRemoteControl remote;
         public IMyTextPanel textPanel;
         public List<IMyGyro> gyros;
 
         private GyroController gyroController;
-
         private HoverModule hoverModule;
         private VectorModule vectorModule;
         private Module activeModule;
 
-        public Program() {
+        public Program()
+        {
             Runtime.UpdateFrequency = UpdateFrequency.Update1;
+            configReader = new ConfigReader(Me);
             GetBlocks();
             gyroController = new GyroController(gyros, remote);
-            hoverModule = new HoverModule(gyroController);
-            vectorModule = new VectorModule(gyroController);
+            hoverModule = new HoverModule(configReader, gyroController);
+            vectorModule = new VectorModule(configReader, gyroController);
+
+            gyroController.OverrideGyros(false);
         }
 
-        public void Main(string argument, UpdateType updateType) {
-            
+        public void Main(string argument, UpdateType updateType)
+        {
+            // TODO add command to regen config
             if ((updateType & UpdateType.Update1) == 0)
             {
                 string[] args = argument.Split(' ');
@@ -89,32 +81,37 @@ namespace IngameScript
         }
 
         // TODO try/catch
-        private void GetBlocks() {
+        private void GetBlocks()
+        {
             // Remote Control Block
-            remote = GridTerminalSystem.GetBlockWithName(remoteBlockName) as IMyRemoteControl;
-            if (remote == null)
-                Helpers.PrintException("Unable to find Remote Control block with name: " + remoteBlockName); 
-            else
-                Echo("Detected remote control block");
+            remote = GetBlockByName(configReader.Get<string>("remoteBlockName")) as IMyRemoteControl;
 
             // Text Panel (optional)
-            textPanel = GridTerminalSystem.GetBlockWithName(textPanelName) as IMyTextPanel;
-            if (textPanel != null)
-                Echo("Detected text panel");
+            textPanel = GetBlockByName(configReader.Get<string>("textPanelName"), true) as IMyTextPanel;
 
             // Gyroscopes
-            IMyBlockGroup group = GridTerminalSystem.GetBlockGroupWithName(name: gyroGroupName);
-            if (group == null)
-                Helpers.PrintException("Error: Unable to find group with name: " + gyroGroupName);
-            else {
-                var list = new List<IMyTerminalBlock>();
-                group.GetBlocks(list);
-                gyros = list.ConvertAll(x => (IMyGyro)x);
-                if (list.Count > 0)
-                    Echo("Detected " + gyros.Count + " gyroscopes");
-                else
-                    Echo("Warning: Group " + gyroGroupName + " contains no gyroscopes");
-            }
+            IMyBlockGroup group = GetBlockGroupByName(configReader.Get<string>("gyroGroupName"));
+            var list = new List<IMyTerminalBlock>();
+            group.GetBlocks(list);
+            gyros = list.ConvertAll(x => (IMyGyro)x);
+            if (list.Count < 0)
+                Echo("Warning: no gyroscopes were found in the BlockGroup");
+        }
+
+        private IMyTerminalBlock GetBlockByName(string name, bool optional = false)
+        {
+            IMyTerminalBlock block = GridTerminalSystem.GetBlockWithName(name);
+            if (!optional && block == null)
+                Helpers.PrintException("Error: Unable to find block with name: " + name);
+            return block;
+        }
+
+        private IMyBlockGroup GetBlockGroupByName(string name, bool optional = false)
+        {
+            IMyBlockGroup group = GridTerminalSystem.GetBlockGroupWithName(name);
+            if (!optional && group == null)
+                Helpers.PrintException("Error: Unable to find group with name: " + name);
+            return group;
         }
     }
 }

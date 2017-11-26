@@ -20,31 +20,38 @@ namespace IngameScript
     {
         public class HoverModule : Module
         {
-            const double maxPitch = 45;
-            const double maxRoll = 45;
+            private int gyroResponsiveness;
+            private double maxPitch;
+            private double maxRoll;
 
+            private readonly ConfigReader config;
             private readonly GyroController gyroController;
             private float setSpeed;
             private double worldSpeedForward, worldSpeedRight, worldSpeedUp;
             private double pitch, roll;
             private double desiredPitch, desiredRoll;
 
-            public HoverModule(GyroController gyroController)
+            public HoverModule(ConfigReader config, GyroController gyroController)
             {
+                this.config = config;
                 this.gyroController = gyroController;
+
+                gyroResponsiveness = config.Get<int>("gyroResponsiveness");
+                maxPitch = config.Get<double>("maxPitch");
+                maxRoll = config.Get<double>("maxRoll");
 
                 actions.Add("stop", new ModuleAction((args) => { gyroController.OverrideGyros(false); }, null));
 
                 actions.Add("hover", new ModuleAction(null, () =>
                 {
-                    desiredPitch = Math.Atan(worldSpeedForward / gyroResponsiveness) / halfPi * maxPitch;
-                    desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / halfPi * maxRoll;
+                    desiredPitch = Math.Atan(worldSpeedForward / gyroResponsiveness) / Helpers.halfPi * maxPitch;
+                    desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / Helpers.halfPi * maxRoll;
                 }));
 
                 actions.Add("glide", new ModuleAction(null, () =>
                 {
                     desiredPitch = 0;
-                    desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / halfPi * maxRoll;
+                    desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / Helpers.halfPi * maxRoll;
                 }));
 
                 actions.Add("freeglide", new ModuleAction(null, () =>
@@ -55,14 +62,14 @@ namespace IngameScript
 
                 actions.Add("pitch", new ModuleAction(null, () =>
                 {
-                    desiredPitch = Math.Atan(worldSpeedForward / gyroResponsiveness) / halfPi * maxPitch;
+                    desiredPitch = Math.Atan(worldSpeedForward / gyroResponsiveness) / Helpers.halfPi * maxPitch;
                     desiredRoll = (roll - 90);
                 }));
 
                 actions.Add("roll", new ModuleAction(null, () =>
                 {
                     desiredPitch = -(pitch - 90);
-                    desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / halfPi * maxRoll;
+                    desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / Helpers.halfPi * maxRoll;
                 }));
                 
                 actions.Add("cruise", new ModuleAction((string[] args) =>
@@ -70,8 +77,8 @@ namespace IngameScript
                     setSpeed = args[0] != null ? Int32.Parse(args[0]) : 0;
                 }, () =>
                 {
-                    desiredPitch = Math.Atan((worldSpeedForward - setSpeed) / gyroResponsiveness) / halfPi * maxPitch;
-                    desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / halfPi * maxRoll;
+                    desiredPitch = Math.Atan((worldSpeedForward - setSpeed) / gyroResponsiveness) / Helpers.halfPi * maxPitch;
+                    desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / Helpers.halfPi * maxRoll;
                 }));
                 
             }
@@ -131,15 +138,15 @@ namespace IngameScript
 
             private void CalcPitchAndRoll()
             {
-                pitch = Helpers.NotNan(Math.Acos(Vector3D.Dot(gyroController.worldOrientation.Forward, gyroController.gravity)) * radToDeg);
-                roll = Helpers.NotNan(Math.Acos(Vector3D.Dot(gyroController.worldOrientation.Right, gyroController.gravity)) * radToDeg);
+                pitch = Helpers.NotNan(Math.Acos(Vector3D.Dot(gyroController.worldOrientation.Forward, gyroController.gravity)) * Helpers.radToDeg);
+                roll = Helpers.NotNan(Math.Acos(Vector3D.Dot(gyroController.worldOrientation.Right, gyroController.gravity)) * Helpers.radToDeg);
             }
 
             private void ExecuteManeuver()
             {
                 action?.execute();
-                var quatPitch = Quaternion.CreateFromAxisAngle(gyroController.shipOrientation.Left, (float)(desiredPitch * degToRad));
-                var quatRoll = Quaternion.CreateFromAxisAngle(gyroController.shipOrientation.Backward, (float)(desiredRoll * degToRad));
+                var quatPitch = Quaternion.CreateFromAxisAngle(gyroController.shipOrientation.Left, (float)(desiredPitch * Helpers.degToRad));
+                var quatRoll = Quaternion.CreateFromAxisAngle(gyroController.shipOrientation.Backward, (float)(desiredRoll * Helpers.degToRad));
                 var reference = Vector3D.Transform(gyroController.shipOrientation.Down, quatPitch * quatRoll);
                 gyroController.SetTargetOrientation(reference, gyroController.remote.GetNaturalGravity());
             }

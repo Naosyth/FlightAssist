@@ -26,11 +26,11 @@ namespace IngameScript
             private readonly GyroController gyroController;
             private Vector3D thrustVector;
 
-            public VectorModule(GyroController gyroController)
+            public VectorModule(ConfigReader config, GyroController gyroController)
             {
                 this.gyroController = gyroController;
 
-                thrustVector = GetThrustVector(spaceMainThrust);
+                thrustVector = GetThrustVector(config.Get<string>("spaceMainThrust"));
 
                 actions.Add("stop", new ModuleAction((args) => { gyroController.OverrideGyros(false); }, null));
                 actions.Add("brake", new ModuleAction((args) => { gyroController.remote.DampenersOverride = false; }, SpaceBrake));

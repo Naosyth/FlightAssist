@@ -20,6 +20,9 @@ namespace IngameScript
     {
         public class GyroController
         {
+            const double minGyroRpmScale = 0.001;
+            const double gyroVelocityScale = 0.2;
+
             private readonly List<IMyGyro> gyros;
             public readonly IMyRemoteControl remote;
             public Matrix shipOrientation;
