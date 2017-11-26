@@ -18,6 +18,8 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
+        public const string Version = "2.0";
+
         private ConfigReader configReader;
 
         public IMyRemoteControl remote;
@@ -38,49 +40,61 @@ namespace IngameScript
             hoverModule = new HoverModule(configReader, gyroController);
             vectorModule = new VectorModule(configReader, gyroController);
 
-            gyroController.OverrideGyros(false);
+            string startCommand = configReader.Get<string>("startCommand");
+            if (startCommand != null)
+                ProcessCommand(startCommand);
+            else
+                gyroController.OverrideGyros(false);
         }
 
         public void Main(string argument, UpdateType updateType)
         {
-            // TODO add command to regen config
             if ((updateType & UpdateType.Update1) == 0)
             {
-                string[] args = argument.Split(' ');
-                switch (args[0].ToLower())
-                {
-                    case "hover":
-                        activeModule = hoverModule;
-                        break;
-                    case "vector":
-                        activeModule = vectorModule;
-                        break;
-                    case "stop":
-                        activeModule = null;
-                        break;
-                }
-
-                if (activeModule != null)
-                    activeModule.ProcessCommand(args);
-
+                ProcessCommand(argument);
                 return;
-            } else
-            {
-                if (activeModule != null)
-                {
-                    activeModule.Tick();
-                    if (textPanel != null)
-                    {
-                        textPanel.WritePublicText(activeModule.GetPrintString(), false);
-                        textPanel.ShowPublicTextOnScreen();
-                    }
-                }
             }
-
             gyroController.Update();
+            activeModule?.Tick();
+            if (textPanel != null)
+            {
+                textPanel.WritePublicText(GetTextPanelHeader());
+                if (activeModule != null)
+                    textPanel.WritePublicText(activeModule?.GetPrintString(), true);
+            }
         }
 
-        // TODO try/catch
+        private void ProcessCommand(string argument)
+        {
+            string[] args = argument.Split(' ');
+            switch (args[0].ToLower())
+            {
+                case "hover":
+                    activeModule = hoverModule;
+                    break;
+                case "vector":
+                    activeModule = vectorModule;
+                    break;
+                case "stop":
+                    activeModule = null;
+                    gyroController.OverrideGyros(false);
+                    break;
+                case "reset":
+                    configReader.SetDefaults();
+                    break;
+            }
+
+            if (activeModule != null)
+                activeModule.ProcessCommand(args);
+        }
+
+        private string GetTextPanelHeader()
+        {
+            string header = "       FLIGHT ASSIST V" + Version;
+            header += "\n----------------------------------------\n\n";
+            return header;
+        }
+
         private void GetBlocks()
         {
             // Remote Control Block
@@ -88,6 +102,11 @@ namespace IngameScript
 
             // Text Panel (optional)
             textPanel = GetBlockByName(configReader.Get<string>("textPanelName"), true) as IMyTextPanel;
+            if (textPanel != null)
+            {
+                textPanel.FontSize = 1.5f;
+                textPanel.ShowPublicTextOnScreen();
+            }
 
             // Gyroscopes
             IMyBlockGroup group = GetBlockGroupByName(configReader.Get<string>("gyroGroupName"));

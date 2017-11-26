@@ -40,52 +40,54 @@ namespace IngameScript
                 maxPitch = config.Get<double>("maxPitch");
                 maxRoll = config.Get<double>("maxRoll");
 
-                actions.Add("stop", new ModuleAction((args) => { gyroController.OverrideGyros(false); }, null));
+                AddAction("disabled", (args) => { gyroController.OverrideGyros(false); }, null);
 
-                actions.Add("hover", new ModuleAction(null, () =>
+                AddAction("stop", null, () =>
                 {
                     desiredPitch = Math.Atan(worldSpeedForward / gyroResponsiveness) / Helpers.halfPi * maxPitch;
                     desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / Helpers.halfPi * maxRoll;
-                }));
+                });
 
-                actions.Add("glide", new ModuleAction(null, () =>
+                AddAction("glide", null, () =>
                 {
                     desiredPitch = 0;
                     desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / Helpers.halfPi * maxRoll;
-                }));
+                });
 
-                actions.Add("freeglide", new ModuleAction(null, () =>
+                AddAction("freeglide", null, () =>
                 {
                     desiredPitch = 0;
                     desiredRoll = 0;
-                }));
+                });
 
-                actions.Add("pitch", new ModuleAction(null, () =>
+                AddAction("pitch", null, () =>
                 {
                     desiredPitch = Math.Atan(worldSpeedForward / gyroResponsiveness) / Helpers.halfPi * maxPitch;
                     desiredRoll = (roll - 90);
-                }));
+                });
 
-                actions.Add("roll", new ModuleAction(null, () =>
+                AddAction("roll", null, () =>
                 {
                     desiredPitch = -(pitch - 90);
                     desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / Helpers.halfPi * maxRoll;
-                }));
-                
-                actions.Add("cruise", new ModuleAction((string[] args) =>
+                });
+
+                AddAction("cruise", (string[] args) =>
                 {
                     setSpeed = args[0] != null ? Int32.Parse(args[0]) : 0;
                 }, () =>
                 {
                     desiredPitch = Math.Atan((worldSpeedForward - setSpeed) / gyroResponsiveness) / Helpers.halfPi * maxPitch;
                     desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / Helpers.halfPi * maxRoll;
-                }));
+                });
                 
             }
 
             protected override void OnSetAction()
             {
-                gyroController.OverrideGyros(action.execute != null);
+                gyroController.OverrideGyros(action?.execute != null);
+                if (action?.execute != null)
+                    gyroController.remote.DampenersOverride = true;
             }
 
             // TODO Auto toggle on when entering gravity
@@ -94,39 +96,38 @@ namespace IngameScript
                 base.Tick();
 
                 if (!gyroController.inGravity)
-                    SetAction("stop");
+                    SetAction("disable");
 
                 if (gyroController.gyrosEnabled)
-                {
-                    CalcWorldSpeed();
-                    CalcPitchAndRoll();
                     ExecuteManeuver();
-                    PrintStatus();
-                    PrintVelocity();
-                    PrintOrientation();
-                }
+
+                CalcWorldSpeed();
+                CalcPitchAndRoll();
+                PrintStatus();
+                PrintVelocity();
+                PrintOrientation();
             }
 
             // TODO make current mode work again
             private void PrintStatus()
             {
-                PrintLine("----- Status -------------------------------------------");
-                PrintLine("Hover State: " + (gyroController.gyrosEnabled ? "ENABLED" : "DISABLED"));
-                //PrintLine("Hover Mode: " + mode.ToUpper());
+                PrintLine("    HOVER MODULE ACTIVE");
+                PrintLine("        Mode: " + action?.name.ToUpper());
             }
 
             private void PrintVelocity()
             {
-                PrintLine("\n----- Velocity ----------------------------------------");
-                PrintLine("  F/B: " + worldSpeedForward.ToString("+000;\u2013000"));
-                PrintLine("  R/L: " + worldSpeedRight.ToString("+000;\u2013000"));
-                PrintLine("  U/D: " + worldSpeedUp.ToString("+000;\u2013000"));
+                PrintLine("\n Velocity (M/S)");
+                string velocityString = " X: " + worldSpeedForward.ToString("+000;\u2013000");
+                velocityString += " | Y: " + worldSpeedRight.ToString("+000;\u2013000");
+                velocityString += " | Z: " + worldSpeedUp.ToString("+000;\u2013000");
+                PrintLine(velocityString);
             }
 
             private void PrintOrientation()
             {
-                PrintLine("\n----- Orientation ----------------------------------------");
-                PrintLine("Pitch: " + pitch.ToString("+00;\u201300") + "° | Roll: " + roll.ToString("+00;\u201300") + "°");
+                PrintLine("\n Orientation");
+                PrintLine(" Pitch: " + (90-pitch).ToString("+00;\u201300") + "° | Roll: " + ((90-roll)*-1).ToString("+00;\u201300") + "°");
             }
 
             private void CalcWorldSpeed()

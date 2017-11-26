@@ -19,12 +19,14 @@ namespace IngameScript
     partial class Program
     {
         public class ModuleAction
-       {
+        {
+            public string name;
             public Action<string[]> initialize;
             public Action execute;
 
-            public ModuleAction(Action<string[]> initialize, Action execute)
+            public ModuleAction(string name, Action<string[]> initialize, Action execute)
             {
+                this.name = name;
                 this.initialize = initialize;
                 this.execute = execute;
             }

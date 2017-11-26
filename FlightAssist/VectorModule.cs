@@ -32,10 +32,10 @@ namespace IngameScript
 
                 thrustVector = GetThrustVector(config.Get<string>("spaceMainThrust"));
 
-                actions.Add("stop", new ModuleAction((args) => { gyroController.OverrideGyros(false); }, null));
-                actions.Add("brake", new ModuleAction((args) => { gyroController.remote.DampenersOverride = false; }, SpaceBrake));
-                actions.Add("prograde", new ModuleAction(null, () => { TargetOrientation(gyroController.deltaPosition); }));
-                actions.Add("retrograde", new ModuleAction(null, () => { TargetOrientation(-gyroController.deltaPosition); }));
+                AddAction("stop", (args) => { gyroController.OverrideGyros(false); }, null);
+                AddAction("brake", (args) => { gyroController.remote.DampenersOverride = false; }, SpaceBrake);
+                AddAction("prograde", null, () => { TargetOrientation(gyroController.deltaPosition); });
+                AddAction("retrograde", null, () => { TargetOrientation(-gyroController.deltaPosition); });
             }
 
             protected override void OnSetAction()

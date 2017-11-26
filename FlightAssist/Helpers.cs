@@ -26,7 +26,8 @@ namespace IngameScript
 
             public static double NotNan(double val)
             {
-                if (double.IsNaN(val)) return 0;
+                if (double.IsNaN(val))
+                    return 0;
                 return val;
             }
 
@@ -38,12 +39,9 @@ namespace IngameScript
             public static string GetCommandFromArgs(string[] args)
             {
                 if (args[1] != null)
-                {
                     return args[1].ToLower();
-                } else
-                {
+                else
                     return "";
-                }
             }
 
             public static void PrintException(string error)

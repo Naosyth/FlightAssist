@@ -29,6 +29,11 @@ namespace IngameScript
             public virtual void ProcessCommand(string[] args) {
                 SetAction(Helpers.GetCommandFromArgs(args), args.Skip(2).ToArray());
             }
+
+            protected void AddAction(string name, Action<string[]> initialize, Action execute)
+            {
+                actions.Add(name, new ModuleAction(name, initialize, execute));
+            }
       
             protected bool SetAction(string actionName)
             {
@@ -37,6 +42,9 @@ namespace IngameScript
 
             protected bool SetAction(string actionName, string[] args)
             {
+                if (!actions.Keys.Contains<string>(actionName))
+                    return false;
+
                 if (actions.TryGetValue(actionName, out action))
                 {
                     action.initialize?.Invoke(args);

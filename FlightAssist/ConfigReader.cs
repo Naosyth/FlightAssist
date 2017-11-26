@@ -56,8 +56,9 @@ namespace IngameScript
                 }
             }
 
-            private void SetDefaults()
+            public void SetDefaults()
             {
+                config.Clear();
                 config.Add("remoteBlockName", "FA Remote");
                 config.Add("textPanelName", "FA Screen");
                 config.Add("gyroGroupName", "FA Gyros");
@@ -66,6 +67,7 @@ namespace IngameScript
                 config.Add("maxPitch", "45");
                 config.Add("maxRoll", "45");
                 config.Add("gyroVelocityScale", "0.2");
+                config.Add("startCommand", "hover hover");
                 SaveConfig();
             }
 
