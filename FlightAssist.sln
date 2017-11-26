@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2009
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlightAssist", "FlightAssist\FlightAssist.csproj", "{6F4A131A-5230-4D5D-B4CA-F0F495C14B2D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6F4A131A-5230-4D5D-B4CA-F0F495C14B2D}.Debug|x64.ActiveCfg = Debug|x64
+		{6F4A131A-5230-4D5D-B4CA-F0F495C14B2D}.Debug|x64.Build.0 = Debug|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2E0F22C5-A4F2-456A-AE22-0A0A6528C6B0}
+	EndGlobalSection
+EndGlobal
