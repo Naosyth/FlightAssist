@@ -45,7 +45,7 @@ namespace IngameScript
 
             protected override void OnSetAction()
             {
-                gyroController.OverrideGyros(action.execute != null);
+                gyroController.OverrideGyros(action?.execute != null);
             }
 
             public override void Tick()
@@ -64,7 +64,7 @@ namespace IngameScript
                 PrintLine("  MODE: " + action?.name.ToUpper() + "\n");
 
                 string output = "";
-                if (action.name == "brake")
+                if (action?.name == "brake")
                 {
                     var percent = Math.Abs(gyroController.speed / startSpeed);
                     string progressBar;
@@ -91,11 +91,11 @@ namespace IngameScript
 
             private void SpaceBrake()
             {
-                if (gyroController.inGravity)
+                /*if (gyroController.inGravity)
                 {
                     SetAction("disabled");
                     return;
-                }
+                }*/
 
                 TargetOrientation(gyroController.deltaPosition);
 

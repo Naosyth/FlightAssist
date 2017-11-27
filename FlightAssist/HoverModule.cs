@@ -101,8 +101,14 @@ namespace IngameScript
                 CalcWorldSpeed();
                 CalcPitchAndRoll();
                 PrintStatus();
-                PrintVelocity();
-                PrintOrientation();
+                if (gyroController.inGravity)
+                {
+                    PrintVelocity();
+                    PrintOrientation();
+                } else
+                {
+                    PrintLine("\n\n   No Planetary Gravity");
+                }
 
                 if (gyroController.gyrosEnabled)
                     ExecuteManeuver();
