@@ -90,7 +90,7 @@ namespace IngameScript
 
         private string GetTextPanelHeader()
         {
-            string header = "       FLIGHT ASSIST V" + Version;
+            string header = "    FLIGHT ASSIST V" + Version;
             header += "\n----------------------------------------\n\n";
             return header;
         }
@@ -104,7 +104,8 @@ namespace IngameScript
             textPanel = GetBlockByName(configReader.Get<string>("textPanelName"), true) as IMyTextPanel;
             if (textPanel != null)
             {
-                textPanel.FontSize = 1.5f;
+                textPanel.Font = "Monospace";
+                textPanel.FontSize = 1.0f;
                 textPanel.ShowPublicTextOnScreen();
             }
 

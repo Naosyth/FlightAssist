@@ -96,31 +96,30 @@ namespace IngameScript
                 base.Tick();
 
                 if (!gyroController.inGravity)
-                    SetAction("disable");
-
-                if (gyroController.gyrosEnabled)
-                    ExecuteManeuver();
+                    SetAction("disabled");
 
                 CalcWorldSpeed();
                 CalcPitchAndRoll();
                 PrintStatus();
                 PrintVelocity();
                 PrintOrientation();
+
+                if (gyroController.gyrosEnabled)
+                    ExecuteManeuver();
             }
 
-            // TODO make current mode work again
             private void PrintStatus()
             {
                 PrintLine("    HOVER MODULE ACTIVE");
-                PrintLine("        Mode: " + action?.name.ToUpper());
+                PrintLine("    MODE: " + action?.name.ToUpper());
             }
 
             private void PrintVelocity()
             {
                 PrintLine("\n Velocity (M/S)");
-                string velocityString = " X: " + worldSpeedForward.ToString("+000;\u2013000");
-                velocityString += " | Y: " + worldSpeedRight.ToString("+000;\u2013000");
-                velocityString += " | Z: " + worldSpeedUp.ToString("+000;\u2013000");
+                string velocityString = " X:" + worldSpeedForward.ToString("+000;\u2013000");
+                velocityString += " Y:" + worldSpeedRight.ToString("+000;\u2013000");
+                velocityString += " Z:" + worldSpeedUp.ToString("+000;\u2013000");
                 PrintLine(velocityString);
             }
 

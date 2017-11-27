@@ -26,16 +26,21 @@ namespace IngameScript
             private readonly GyroController gyroController;
             private Vector3D thrustVector;
 
+            private double startSpeed;
+
             public VectorModule(ConfigReader config, GyroController gyroController)
             {
                 this.gyroController = gyroController;
 
                 thrustVector = GetThrustVector(config.Get<string>("spaceMainThrust"));
 
-                AddAction("stop", (args) => { gyroController.OverrideGyros(false); }, null);
-                AddAction("brake", (args) => { gyroController.remote.DampenersOverride = false; }, SpaceBrake);
-                AddAction("prograde", null, () => { TargetOrientation(gyroController.deltaPosition); });
-                AddAction("retrograde", null, () => { TargetOrientation(-gyroController.deltaPosition); });
+                AddAction("disabled", (args) => { gyroController.OverrideGyros(false); }, null);
+                AddAction("brake", (args) => {
+                    startSpeed = gyroController.speed;
+                    gyroController.remote.DampenersOverride = false;
+                }, SpaceBrake);
+                AddAction("prograde", null, () => { TargetOrientation(-gyroController.deltaPosition); });
+                AddAction("retrograde", null, () => { TargetOrientation(gyroController.deltaPosition); });
             }
 
             protected override void OnSetAction()
@@ -47,8 +52,36 @@ namespace IngameScript
             {
                 base.Tick();
 
+                PrintStatus();
+
                 if (gyroController.gyrosEnabled)
                     action?.execute();
+            }
+
+            private void PrintStatus()
+            {
+                PrintLine("  VECTOR MODULE ACTIVE");
+                PrintLine("  MODE: " + action?.name.ToUpper() + "\n");
+
+                string output = "";
+                if (action.name == "brake")
+                {
+                    var percent = Math.Abs(gyroController.speed / startSpeed);
+                    string progressBar;
+                    progressBar = "|";
+                    int width = 24;
+                    var height = 3;
+                    output = " PROGRESS\n";
+                    for (var i = 0; i < width; i++)
+                        progressBar += (i < width * (1-percent)) ? "#" : " ";
+                    progressBar += "|\n";
+                    for (var i = 0; i < height; i++)
+                        output += progressBar;
+                }
+                else
+                    output = " Speed: " + Math.Abs(gyroController.speed).ToString("000") + " m/s";
+
+                PrintLine(output);
             }
 
             private void TargetOrientation(Vector3D target)
@@ -60,7 +93,7 @@ namespace IngameScript
             {
                 if (gyroController.inGravity)
                 {
-                    SetAction("stop");
+                    SetAction("disabled");
                     return;
                 }
 
@@ -69,9 +102,8 @@ namespace IngameScript
                 if (Helpers.EqualWithMargin(gyroController.angle, 0, angleThreshold))
                     gyroController.remote.DampenersOverride = true;
 
-                // Stop when velocity is nearly 0
                 if (gyroController.speed < speedThreshold)
-                    SetAction("stop");
+                    SetAction("disabled");
             }
 
             private Vector3D GetThrustVector(string direction)
