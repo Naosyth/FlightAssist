@@ -28,7 +28,7 @@ namespace IngameScript
 
             private double startSpeed;
 
-            public VectorModule(ConfigReader config, GyroController gyroController)
+            public VectorModule(CustomDataConfig config, GyroController gyroController)
             {
                 this.gyroController = gyroController;
 
@@ -91,12 +91,6 @@ namespace IngameScript
 
             private void SpaceBrake()
             {
-                /*if (gyroController.inGravity)
-                {
-                    SetAction("disabled");
-                    return;
-                }*/
-
                 TargetOrientation(gyroController.deltaPosition);
 
                 if (Helpers.EqualWithMargin(gyroController.angle, 0, angleThreshold))

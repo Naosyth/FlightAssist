@@ -38,10 +38,9 @@ namespace IngameScript
 
             public static string GetCommandFromArgs(string[] args)
             {
-                if (args[1] != null)
-                    return args[1].ToLower();
-                else
+                if (args.Length < 2 || args[1] == null)
                     return "";
+                return args[1].ToLower();
             }
 
             public static void PrintException(string error)

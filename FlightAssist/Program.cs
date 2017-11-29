@@ -18,9 +18,21 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
-        public const string Version = "2.0";
+        public const string Version = "3.0.1";
 
-        private ConfigReader configReader;
+        private List<ConfigOption> defaultConfig = new List<ConfigOption>()
+        {
+            new ConfigOption("remoteBlockName", "FA Remote", "Name of the remote control block.", true),
+            new ConfigOption("textPanelName", "FA Screen", "Name of the text panel.", false),
+            new ConfigOption("gyroGroupName", "FA Gyros", "Name of the group containing the gyroscopes.", true),
+            new ConfigOption("spaceMainThrust", "backward", "Direction of your main thrust used by the vector module.", true),
+            new ConfigOption("gyroResponsiveness", "8", "Tuning variable. Higher = faster but may over-shoot.", true),
+            new ConfigOption("maxPitch", "45", "Max pitch used by hover module.", true),
+            new ConfigOption("maxRoll", "45", "Max roll used by hover module.", true),
+            new ConfigOption("gyroVelocityScale", "0.2", "Tuning variable used to adjust gyroscope response.", true),
+            new ConfigOption("startCommand", "hover stop", "Command ran automatically upon successful compilation.", false),
+        };
+        private CustomDataConfig configReader;
 
         public IMyRemoteControl remote;
         public IMyTextPanel textPanel;
@@ -34,7 +46,7 @@ namespace IngameScript
         public Program()
         {
             Runtime.UpdateFrequency = UpdateFrequency.Update1;
-            configReader = new ConfigReader(Me);
+            configReader = new CustomDataConfig(Me, defaultConfig);
             GetBlocks();
             gyroController = new GyroController(gyros, remote);
             hoverModule = new HoverModule(configReader, gyroController);
@@ -67,6 +79,10 @@ namespace IngameScript
         private void ProcessCommand(string argument)
         {
             string[] args = argument.Split(' ');
+
+            if (args.Length < 1)
+                return;
+
             switch (args[0].ToLower())
             {
                 case "hover":
@@ -80,7 +96,7 @@ namespace IngameScript
                     gyroController.OverrideGyros(false);
                     break;
                 case "reset":
-                    configReader.SetDefaults();
+                    configReader.InitializeConfig();
                     break;
             }
 

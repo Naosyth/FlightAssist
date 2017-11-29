@@ -24,14 +24,14 @@ namespace IngameScript
             private double maxPitch;
             private double maxRoll;
 
-            private readonly ConfigReader config;
+            private readonly CustomDataConfig config;
             private readonly GyroController gyroController;
             private float setSpeed;
             private double worldSpeedForward, worldSpeedRight, worldSpeedUp;
             private double pitch, roll;
             private double desiredPitch, desiredRoll;
 
-            public HoverModule(ConfigReader config, GyroController gyroController)
+            public HoverModule(CustomDataConfig config, GyroController gyroController)
             {
                 this.config = config;
                 this.gyroController = gyroController;
@@ -106,9 +106,7 @@ namespace IngameScript
                     PrintVelocity();
                     PrintOrientation();
                 } else
-                {
                     PrintLine("\n\n   No Planetary Gravity");
-                }
 
                 if (gyroController.gyrosEnabled)
                     ExecuteManeuver();
@@ -122,11 +120,10 @@ namespace IngameScript
 
             private void PrintVelocity()
             {
-                PrintLine("\n Velocity (M/S)");
                 string velocityString = " X:" + worldSpeedForward.ToString("+000;\u2013000");
                 velocityString += " Y:" + worldSpeedRight.ToString("+000;\u2013000");
                 velocityString += " Z:" + worldSpeedUp.ToString("+000;\u2013000");
-                PrintLine(velocityString);
+                PrintLine("\n Velocity (M/S)+\n" + velocityString);
             }
 
             private void PrintOrientation()

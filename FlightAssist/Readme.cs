@@ -1,8 +1,9 @@
 ﻿/*
- *   R e a d m e
- *   -----------
- * 
- *   In this file you can include any instructions or other comments you want to have injected onto the 
- *   top of your final script. You can safely delete this file if you do not want any such comments.
+ *   Flight Assist by Naosyth
+ *   Email: Naosyth@Gmail.com
+ *   
+ *   Flight Assist is an ingame program that helps pilots control their vehicles both in atmosphere and in space without having thrust in all six directions.
+ *   
+ *   For more instructions, see the script's description on the Steam Workshop.
  * 
  */

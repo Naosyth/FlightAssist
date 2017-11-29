@@ -31,16 +31,16 @@ namespace IngameScript
             public Vector3D deltaPosition;
             private Vector3D oldPosition;
             public double speed;
-            public object localSpeedUp;
-            public object localSpeedRight;
-            public object localSpeedForward;
+            public double localSpeedUp;
+            public double localSpeedRight;
+            public double localSpeedForward;
             public Vector3D gravity;
             public bool inGravity;
             private bool switchingGravity;
             public bool gyrosEnabled;
             private Vector3D reference;
             private Vector3D target;
-            public double angle; // TODO: Figure out what this is and give it a better name
+            public double angle;
             private double dt = 1000 / 60;
 
             public GyroController(List<IMyGyro> gyros, IMyRemoteControl remote)

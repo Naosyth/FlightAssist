@@ -18,16 +18,39 @@ namespace IngameScript
 {
     partial class Program
     {
-        public class ConfigReader
+        public class ConfigOption
+        {
+            public readonly string key;
+            public readonly string value;
+            public readonly string description;
+            public readonly bool required;
+
+            public ConfigOption(string key, string value, string description, bool required)
+            {
+                this.key = key;
+                this.value = value;
+                this.description = description;
+                this.required = required;
+            }
+        }
+
+        public class ConfigParserException: Exception
+        {
+            public ConfigParserException(string message) : base("Config Error: " + message) {}
+        }
+
+        public class CustomDataConfig
         {
             private Dictionary<string, string> config = new Dictionary<string, string>();
+            private List<ConfigOption> configOptions = new List<ConfigOption>();
             private IMyProgrammableBlock pb;
 
-            public ConfigReader(IMyProgrammableBlock pb)
+            public CustomDataConfig(IMyProgrammableBlock pb, List<ConfigOption> configOptions)
             {
                 this.pb = pb;
+                this.configOptions = configOptions;
                 if (pb.CustomData == "")
-                    SetDefaults();
+                    InitializeConfig();
                 else
                     ParseConfig();
             }
@@ -46,36 +69,45 @@ namespace IngameScript
 
                 foreach (string line in lines)
                 {
+                    if (line.Length == 0 || line[0] == '#')
+                        continue;
                     var words = line.Split('=');
                     if (words.Length == 2)
                     {
                         string key = words[0].Trim();
                         string value = words[1].Trim();
+                        if (key == "" || value == "")
+                            throw new ConfigParserException("Unable to parse line: " + line);
                         config[key] = value;
-                    }
+                    } else
+                        throw new ConfigParserException("Unable to parse line: " + line);
+                }
+
+                ValidateConfig();
+            }
+
+            private void ValidateConfig()
+            {
+                foreach (ConfigOption configOption in configOptions)
+                {
+                    if (!configOption.required)
+                        continue;
+
+                    if (!config.ContainsKey(configOption.key))
+                        throw new ConfigParserException("Missing value for required key: " + configOption.key);
                 }
             }
 
-            public void SetDefaults()
+            public void InitializeConfig()
             {
                 config.Clear();
-                config.Add("remoteBlockName", "FA Remote");
-                config.Add("textPanelName", "FA Screen");
-                config.Add("gyroGroupName", "FA Gyros");
-                config.Add("spaceMainThrust", "backward");
-                config.Add("gyroResponsiveness", "8");
-                config.Add("maxPitch", "45");
-                config.Add("maxRoll", "45");
-                config.Add("gyroVelocityScale", "0.2");
-                config.Add("startCommand", "hover hover");
-                SaveConfig();
-            }
-
-            private void SaveConfig()
-            {
                 StringBuilder configString = new StringBuilder();
-                foreach (KeyValuePair<string, string> entry in config)
-                    configString.Append(entry.Key + "=" + entry.Value + "\n");
+                foreach (ConfigOption configOption in configOptions)
+                {
+                    config[configOption.key] = configOption.value;
+                    configString.Append("# " + configOption.description + " " + (configOption.required ? "Required" : "Optional"));
+                    configString.Append("\n" + configOption.key + "=" + config[configOption.key] + "\n\n");
+                }
                 pb.CustomData = configString.ToString();
             }
         }
