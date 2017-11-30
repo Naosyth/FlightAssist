@@ -18,23 +18,24 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
-        public const string Version = "3.0.1";
+        public const string Version = "3.0.2";
 
         private List<ConfigOption> defaultConfig = new List<ConfigOption>()
         {
-            new ConfigOption("remoteBlockName", "FA Remote", "Name of the remote control block.", true),
+            new ConfigOption("cockpitName", "FA Cockpit", "Name of the cockpit (or remote) block.", true),
             new ConfigOption("textPanelName", "FA Screen", "Name of the text panel.", false),
             new ConfigOption("gyroGroupName", "FA Gyros", "Name of the group containing the gyroscopes.", true),
+            new ConfigOption("smartDelayTime", "20", "Duration to wait in ticks before overriding gyros in smart mode.", true),
             new ConfigOption("spaceMainThrust", "backward", "Direction of your main thrust used by the vector module.", true),
             new ConfigOption("gyroResponsiveness", "8", "Tuning variable. Higher = faster but may over-shoot.", true),
             new ConfigOption("maxPitch", "45", "Max pitch used by hover module.", true),
             new ConfigOption("maxRoll", "45", "Max roll used by hover module.", true),
             new ConfigOption("gyroVelocityScale", "0.2", "Tuning variable used to adjust gyroscope response.", true),
-            new ConfigOption("startCommand", "hover stop", "Command ran automatically upon successful compilation.", false),
+            new ConfigOption("startCommand", "hover smart", "Command ran automatically upon successful compilation.", false),
         };
         private CustomDataConfig configReader;
 
-        public IMyRemoteControl remote;
+        public IMyShipController cockpit;
         public IMyTextPanel textPanel;
         public List<IMyGyro> gyros;
 
@@ -48,15 +49,15 @@ namespace IngameScript
             Runtime.UpdateFrequency = UpdateFrequency.Update1;
             configReader = new CustomDataConfig(Me, defaultConfig);
             GetBlocks();
-            gyroController = new GyroController(gyros, remote);
-            hoverModule = new HoverModule(configReader, gyroController);
-            vectorModule = new VectorModule(configReader, gyroController);
+            gyroController = new GyroController(gyros, cockpit);
+            hoverModule = new HoverModule(configReader, gyroController, cockpit);
+            vectorModule = new VectorModule(configReader, gyroController, cockpit);
 
             string startCommand = configReader.Get<string>("startCommand");
             if (startCommand != null)
                 ProcessCommand(startCommand);
             else
-                gyroController.OverrideGyros(false);
+                gyroController.SetGyroOverride(false);
         }
 
         public void Main(string argument, UpdateType updateType)
@@ -66,7 +67,7 @@ namespace IngameScript
                 ProcessCommand(argument);
                 return;
             }
-            gyroController.Update();
+            gyroController.Tick();
             activeModule?.Tick();
             if (textPanel != null)
             {
@@ -93,7 +94,7 @@ namespace IngameScript
                     break;
                 case "stop":
                     activeModule = null;
-                    gyroController.OverrideGyros(false);
+                    gyroController.SetGyroOverride(false);
                     break;
                 case "reset":
                     configReader.InitializeConfig();
@@ -113,8 +114,8 @@ namespace IngameScript
 
         private void GetBlocks()
         {
-            // Remote Control Block
-            remote = GetBlockByName(configReader.Get<string>("remoteBlockName")) as IMyRemoteControl;
+            // Cockpit Block
+            cockpit = GetBlockByName(configReader.Get<string>("cockpitName")) as IMyShipController;
 
             // Text Panel (optional)
             textPanel = GetBlockByName(configReader.Get<string>("textPanelName"), true) as IMyTextPanel;

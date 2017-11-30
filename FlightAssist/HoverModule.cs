@@ -26,21 +26,45 @@ namespace IngameScript
 
             private readonly CustomDataConfig config;
             private readonly GyroController gyroController;
+            private readonly IMyShipController cockpit;
+            private int smartDelayTimer;
             private float setSpeed;
             private double worldSpeedForward, worldSpeedRight, worldSpeedUp;
             private double pitch, roll;
             private double desiredPitch, desiredRoll;
 
-            public HoverModule(CustomDataConfig config, GyroController gyroController)
+            public HoverModule(CustomDataConfig config, GyroController gyroController, IMyShipController cockpit)
             {
                 this.config = config;
                 this.gyroController = gyroController;
+                this.cockpit = cockpit;
 
                 gyroResponsiveness = config.Get<int>("gyroResponsiveness");
                 maxPitch = config.Get<double>("maxPitch");
                 maxRoll = config.Get<double>("maxRoll");
 
-                AddAction("disabled", (args) => { gyroController.OverrideGyros(false); }, null);
+                AddAction("disabled", (args) => { gyroController.SetGyroOverride(false); }, null);
+
+                AddAction("smart", (string[] args) =>
+                {
+                    smartDelayTimer = 0;
+                    setSpeed = (args.Length > 0 && args[0] != null) ? Int32.Parse(args[0]) : 0;
+                }, () =>
+                {
+                    if (cockpit.MoveIndicator.Length() > 0.0f || cockpit.RotationIndicator.Length() > 0.0f)
+                    {
+                        desiredPitch = -(pitch - 90);
+                        desiredRoll = (roll - 90);
+                        gyroController.SetGyroOverride(false);
+                        smartDelayTimer = 0;
+                    } else if (smartDelayTimer > config.Get<int>("smartDelayTime"))
+                    {
+                        gyroController.SetGyroOverride(true);
+                        desiredPitch = Math.Atan((worldSpeedForward - setSpeed) / gyroResponsiveness) / Helpers.halfPi * maxPitch;
+                        desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / Helpers.halfPi * maxRoll;
+                    } else
+                        smartDelayTimer++;
+                });
 
                 AddAction("stop", null, () =>
                 {
@@ -59,56 +83,35 @@ namespace IngameScript
                     desiredPitch = 0;
                     desiredRoll = 0;
                 });
-
-                AddAction("pitch", null, () =>
-                {
-                    desiredPitch = Math.Atan(worldSpeedForward / gyroResponsiveness) / Helpers.halfPi * maxPitch;
-                    desiredRoll = (roll - 90);
-                });
-
-                AddAction("roll", null, () =>
-                {
-                    desiredPitch = -(pitch - 90);
-                    desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / Helpers.halfPi * maxRoll;
-                });
-
-                AddAction("cruise", (string[] args) =>
-                {
-                    setSpeed = args[0] != null ? Int32.Parse(args[0]) : 0;
-                }, () =>
-                {
-                    desiredPitch = Math.Atan((worldSpeedForward - setSpeed) / gyroResponsiveness) / Helpers.halfPi * maxPitch;
-                    desiredRoll = Math.Atan(worldSpeedRight / gyroResponsiveness) / Helpers.halfPi * maxRoll;
-                });
-                
             }
 
             protected override void OnSetAction()
             {
-                gyroController.OverrideGyros(action?.execute != null);
+                gyroController.SetGyroOverride(action?.execute != null);
                 if (action?.execute != null)
-                    gyroController.remote.DampenersOverride = true;
+                    cockpit.DampenersOverride = true;
             }
 
-            // TODO Auto toggle on when entering gravity
             public override void Tick()
             {
                 base.Tick();
 
-                if (!gyroController.inGravity)
+                if (cockpit.GetNaturalGravity().Length() == 0)
                     SetAction("disabled");
 
                 CalcWorldSpeed();
                 CalcPitchAndRoll();
                 PrintStatus();
-                if (gyroController.inGravity)
+                if (cockpit.GetNaturalGravity().Length() > 0)
                 {
                     PrintVelocity();
                     PrintOrientation();
                 } else
                     PrintLine("\n\n   No Planetary Gravity");
 
-                if (gyroController.gyrosEnabled)
+                if (action?.execute != null)
+                    action?.execute();
+                if (gyroController.gyroOverride)
                     ExecuteManeuver();
             }
 
@@ -116,6 +119,10 @@ namespace IngameScript
             {
                 PrintLine("    HOVER MODULE ACTIVE");
                 PrintLine("    MODE: " + action?.name.ToUpper());
+                if (setSpeed > 0)
+                    PrintLine("    SET SPEED: " + setSpeed + "m/s");
+                else
+                    PrintLine("");
             }
 
             private void PrintVelocity()
@@ -123,7 +130,7 @@ namespace IngameScript
                 string velocityString = " X:" + worldSpeedForward.ToString("+000;\u2013000");
                 velocityString += " Y:" + worldSpeedRight.ToString("+000;\u2013000");
                 velocityString += " Z:" + worldSpeedUp.ToString("+000;\u2013000");
-                PrintLine("\n Velocity (M/S)+\n" + velocityString);
+                PrintLine("\n Velocity (m/s)+\n" + velocityString);
             }
 
             private void PrintOrientation()
@@ -134,24 +141,28 @@ namespace IngameScript
 
             private void CalcWorldSpeed()
             {
-                worldSpeedForward = Helpers.NotNan(Vector3D.Dot(gyroController.deltaPosition, Vector3D.Cross(gyroController.gravity, gyroController.worldOrientation.Right)) * gyroController.speed);
-                worldSpeedRight = Helpers.NotNan(Vector3D.Dot(gyroController.deltaPosition, Vector3D.Cross(gyroController.gravity, gyroController.worldOrientation.Forward)) * gyroController.speed);
-                worldSpeedUp = Helpers.NotNan(Vector3D.Dot(gyroController.deltaPosition, gyroController.gravity) * gyroController.speed);
+                Vector3D linearVelocity = Vector3D.Normalize(cockpit.GetShipVelocities().LinearVelocity);
+                Vector3D gravity = -Vector3D.Normalize(cockpit.GetNaturalGravity());
+                worldSpeedForward = Helpers.NotNan(Vector3D.Dot(linearVelocity, Vector3D.Cross(gravity, cockpit.WorldMatrix.Right)) * cockpit.GetShipSpeed());
+                worldSpeedRight = Helpers.NotNan(Vector3D.Dot(linearVelocity, Vector3D.Cross(gravity, cockpit.WorldMatrix.Forward)) * cockpit.GetShipSpeed());
+                worldSpeedUp = Helpers.NotNan(Vector3D.Dot(linearVelocity, gravity) * cockpit.GetShipSpeed());
             }
 
             private void CalcPitchAndRoll()
             {
-                pitch = Helpers.NotNan(Math.Acos(Vector3D.Dot(gyroController.worldOrientation.Forward, gyroController.gravity)) * Helpers.radToDeg);
-                roll = Helpers.NotNan(Math.Acos(Vector3D.Dot(gyroController.worldOrientation.Right, gyroController.gravity)) * Helpers.radToDeg);
+                Vector3D gravity = -Vector3D.Normalize(cockpit.GetNaturalGravity());
+                pitch = Helpers.NotNan(Math.Acos(Vector3D.Dot(cockpit.WorldMatrix.Forward, gravity)) * Helpers.radToDeg);
+                roll = Helpers.NotNan(Math.Acos(Vector3D.Dot(cockpit.WorldMatrix.Right, gravity)) * Helpers.radToDeg);
             }
 
             private void ExecuteManeuver()
             {
-                action?.execute();
-                var quatPitch = Quaternion.CreateFromAxisAngle(gyroController.shipOrientation.Left, (float)(desiredPitch * Helpers.degToRad));
-                var quatRoll = Quaternion.CreateFromAxisAngle(gyroController.shipOrientation.Backward, (float)(desiredRoll * Helpers.degToRad));
-                var reference = Vector3D.Transform(gyroController.shipOrientation.Down, quatPitch * quatRoll);
-                gyroController.SetTargetOrientation(reference, gyroController.remote.GetNaturalGravity());
+                Matrix cockpitOrientation;
+                cockpit.Orientation.GetMatrix(out cockpitOrientation);
+                var quatPitch = Quaternion.CreateFromAxisAngle(cockpitOrientation.Left, (float)(desiredPitch * Helpers.degToRad));
+                var quatRoll = Quaternion.CreateFromAxisAngle(cockpitOrientation.Backward, (float)(desiredRoll * Helpers.degToRad));
+                var reference = Vector3D.Transform(cockpitOrientation.Down, quatPitch * quatRoll);
+                gyroController.SetTargetOrientation(reference, cockpit.GetNaturalGravity());
             }
         }
     }

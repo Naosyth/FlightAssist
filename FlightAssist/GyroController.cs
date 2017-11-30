@@ -24,67 +24,28 @@ namespace IngameScript
             const double gyroVelocityScale = 0.2;
 
             private readonly List<IMyGyro> gyros;
-            public readonly IMyRemoteControl remote;
-            public Matrix shipOrientation;
-            public MatrixD worldOrientation;
-            private Vector3D position;
-            public Vector3D deltaPosition;
-            private Vector3D oldPosition;
-            public double speed;
-            public double localSpeedUp;
-            public double localSpeedRight;
-            public double localSpeedForward;
-            public Vector3D gravity;
-            public bool inGravity;
-            private bool switchingGravity;
-            public bool gyrosEnabled;
+            private readonly IMyShipController cockpit;
+            public bool gyroOverride;
             private Vector3D reference;
             private Vector3D target;
             public double angle;
-            private double dt = 1000 / 60;
 
-            public GyroController(List<IMyGyro> gyros, IMyRemoteControl remote)
+            public GyroController(List<IMyGyro> gyros, IMyShipController cockpit)
             {
                 this.gyros = gyros;
-                this.remote = remote;
-
-                remote.Orientation.GetMatrix(out shipOrientation);
+                this.cockpit = cockpit;
             }
 
-            public void Update()
+            public void Tick()
             {
-                CalcVelocity();
-                CalcGravity();
                 UpdateGyroRpm();
             }
 
-            private void CalcVelocity()
+            public void SetGyroOverride(bool state)
             {
-                worldOrientation = remote.WorldMatrix;
-                position = remote.GetPosition();
-                deltaPosition = position - oldPosition;
-                oldPosition = position;
-                speed = deltaPosition.Length() / dt * 1000;
-                deltaPosition.Normalize();
-
-                localSpeedUp = Helpers.NotNan(Vector3D.Dot(deltaPosition, worldOrientation.Up) * speed);
-                localSpeedRight = Helpers.NotNan(Vector3D.Dot(deltaPosition, worldOrientation.Right) * speed);
-                localSpeedForward = Helpers.NotNan(Vector3D.Dot(deltaPosition, worldOrientation.Forward) * speed);
-            }
-
-            private void CalcGravity()
-            {
-                gravity = -Vector3D.Normalize(remote.GetNaturalGravity());
-                switchingGravity = inGravity;
-                inGravity = !double.IsNaN(gravity.X);
-                switchingGravity = (inGravity != switchingGravity);
-            }
-
-            public void OverrideGyros(bool state)
-            {
-                gyrosEnabled = state;
+                gyroOverride = state;
                 for (int i = 0; i < gyros.Count; i++)
-                    gyros[i].SetValueBool("Override", gyrosEnabled);
+                    gyros[i].GyroOverride = gyroOverride;
             }
 
             public void SetTargetOrientation(Vector3D setReference, Vector3D setTarget)
@@ -96,7 +57,7 @@ namespace IngameScript
 
             private void UpdateGyroRpm()
             {
-                if (!gyrosEnabled) return;
+                if (!gyroOverride) return;
 
                 for (int i = 0; i < gyros.Count; i++)
                 {
@@ -115,9 +76,9 @@ namespace IngameScript
                     axis.Normalize();
                     axis *= Math.Max(minGyroRpmScale, g.GetMaximum<float>("Roll") * (angle / Math.PI) * gyroVelocityScale);
 
-                    g.SetValueFloat("Pitch", (float)axis.X);
-                    g.SetValueFloat("Yaw", (float)-axis.Y);
-                    g.SetValueFloat("Roll", (float)-axis.Z);
+                    g.Pitch = (float)-axis.X;
+                    g.Yaw = (float)-axis.Y;
+                    g.Roll = (float)-axis.Z;
                 }
             }
         }

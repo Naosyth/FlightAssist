@@ -24,28 +24,30 @@ namespace IngameScript
             private double speedThreshold = 0.3;
 
             private readonly GyroController gyroController;
+            private readonly IMyShipController cockpit;
             private Vector3D thrustVector;
 
             private double startSpeed;
 
-            public VectorModule(CustomDataConfig config, GyroController gyroController)
+            public VectorModule(CustomDataConfig config, GyroController gyroController, IMyShipController cockpit)
             {
                 this.gyroController = gyroController;
+                this.cockpit = cockpit;
 
                 thrustVector = GetThrustVector(config.Get<string>("spaceMainThrust"));
 
-                AddAction("disabled", (args) => { gyroController.OverrideGyros(false); }, null);
+                AddAction("disabled", (args) => { gyroController.SetGyroOverride(false); }, null);
                 AddAction("brake", (args) => {
-                    startSpeed = gyroController.speed;
-                    gyroController.remote.DampenersOverride = false;
+                    startSpeed = cockpit.GetShipSpeed();
+                    cockpit.DampenersOverride = false;
                 }, SpaceBrake);
-                AddAction("prograde", null, () => { TargetOrientation(-gyroController.deltaPosition); });
-                AddAction("retrograde", null, () => { TargetOrientation(gyroController.deltaPosition); });
+                AddAction("prograde", null, () => { TargetOrientation(-Vector3D.Normalize(cockpit.GetShipVelocities().LinearVelocity)); });
+                AddAction("retrograde", null, () => { TargetOrientation(Vector3D.Normalize(cockpit.GetShipVelocities().LinearVelocity)); });
             }
 
             protected override void OnSetAction()
             {
-                gyroController.OverrideGyros(action?.execute != null);
+                gyroController.SetGyroOverride(action?.execute != null);
             }
 
             public override void Tick()
@@ -54,7 +56,7 @@ namespace IngameScript
 
                 PrintStatus();
 
-                if (gyroController.gyrosEnabled)
+                if (gyroController.gyroOverride)
                     action?.execute();
             }
 
@@ -66,7 +68,7 @@ namespace IngameScript
                 string output = "";
                 if (action?.name == "brake")
                 {
-                    var percent = Math.Abs(gyroController.speed / startSpeed);
+                    var percent = Math.Abs(cockpit.GetShipSpeed() / startSpeed);
                     string progressBar;
                     progressBar = "|";
                     int width = 24;
@@ -79,7 +81,7 @@ namespace IngameScript
                         output += progressBar;
                 }
                 else
-                    output = " Speed: " + Math.Abs(gyroController.speed).ToString("000") + " m/s";
+                    output = " Speed: " + Math.Abs(cockpit.GetShipSpeed()).ToString("000") + " m/s";
 
                 PrintLine(output);
             }
@@ -91,25 +93,27 @@ namespace IngameScript
 
             private void SpaceBrake()
             {
-                TargetOrientation(gyroController.deltaPosition);
+                TargetOrientation(Vector3D.Normalize(cockpit.GetShipVelocities().LinearVelocity));
 
                 if (Helpers.EqualWithMargin(gyroController.angle, 0, angleThreshold))
-                    gyroController.remote.DampenersOverride = true;
+                    cockpit.DampenersOverride = true;
 
-                if (gyroController.speed < speedThreshold)
+                if (cockpit.GetShipSpeed() < speedThreshold)
                     SetAction("disabled");
             }
 
             private Vector3D GetThrustVector(string direction)
             {
+                Matrix cockpitOrientation;
+                cockpit.Orientation.GetMatrix(out cockpitOrientation);
                 switch (direction.ToLower())
                 {
-                    case "down": return gyroController.shipOrientation.Down;
-                    case "up": return gyroController.shipOrientation.Up;
-                    case "forward": return gyroController.shipOrientation.Forward;
-                    case "backward": return gyroController.shipOrientation.Backward;
-                    case "right": return gyroController.shipOrientation.Right;
-                    case "left": return gyroController.shipOrientation.Left;
+                    case "down": return cockpitOrientation.Down;
+                    case "up": return cockpitOrientation.Up;
+                    case "forward": return cockpitOrientation.Forward;
+                    case "backward": return cockpitOrientation.Backward;
+                    case "right": return cockpitOrientation.Right;
+                    case "left": return cockpitOrientation.Left;
                     default: throw new Exception("Unidentified thrust direction '" + direction.ToLower() + "'");
                 }
             }

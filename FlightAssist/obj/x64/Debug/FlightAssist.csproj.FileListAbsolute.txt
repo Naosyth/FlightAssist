@@ -24,4 +24,3 @@ C:\Users\Naosyth\source\repos\FlightAssist\FlightAssist\bin\System.Reflection.Me
 C:\Users\Naosyth\source\repos\FlightAssist\FlightAssist\obj\x64\Debug\FlightAssist.csproj.CoreCompileInputs.cache
 C:\Users\Naosyth\source\repos\FlightAssist\FlightAssist\obj\x64\Debug\FlightAssist.exe
 C:\Users\Naosyth\source\repos\FlightAssist\FlightAssist\obj\x64\Debug\FlightAssist.pdb
-C:\Users\Naosyth\source\repos\FlightAssist\FlightAssist\obj\x64\Debug\FlightAssist.csprojResolveAssemblyReference.cache
