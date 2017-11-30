@@ -22,12 +22,10 @@ namespace IngameScript
 
         private List<ConfigOption> defaultConfig = new List<ConfigOption>()
         {
-            new ConfigOption("cockpitName", "FA Cockpit", "Name of the cockpit (or remote) block.", true),
-            new ConfigOption("textPanelName", "FA Screen", "Name of the text panel.", false),
-            new ConfigOption("gyroGroupName", "FA Gyros", "Name of the group containing the gyroscopes.", true),
+            new ConfigOption("blockGroupName", "Flight Assist", "Block group that contains all required blocks.", true),
             new ConfigOption("smartDelayTime", "20", "Duration to wait in ticks before overriding gyros in smart mode.", true),
             new ConfigOption("spaceMainThrust", "backward", "Direction of your main thrust used by the vector module.", true),
-            new ConfigOption("gyroResponsiveness", "8", "Tuning variable. Higher = faster but may over-shoot.", true),
+            new ConfigOption("gyroResponsiveness", "8", "Tuning variable. Higher = faster but may over-shoot more.", true),
             new ConfigOption("maxPitch", "45", "Max pitch used by hover module.", true),
             new ConfigOption("maxRoll", "45", "Max roll used by hover module.", true),
             new ConfigOption("gyroVelocityScale", "0.2", "Tuning variable used to adjust gyroscope response.", true),
@@ -37,7 +35,7 @@ namespace IngameScript
 
         public IMyShipController cockpit;
         public IMyTextPanel textPanel;
-        public List<IMyGyro> gyros;
+        public List<IMyGyro> gyros = new List<IMyGyro>();
 
         private GyroController gyroController;
         private HoverModule hoverModule;
@@ -114,41 +112,28 @@ namespace IngameScript
 
         private void GetBlocks()
         {
-            // Cockpit Block
-            cockpit = GetBlockByName(configReader.Get<string>("cockpitName")) as IMyShipController;
+            string blockGroupName = configReader.Get<string>("blockGroupName");
+            IMyBlockGroup blockGroup = GridTerminalSystem.GetBlockGroupWithName(blockGroupName);
 
-            // Text Panel (optional)
-            textPanel = GetBlockByName(configReader.Get<string>("textPanelName"), true) as IMyTextPanel;
-            if (textPanel != null)
+            List<IMyShipController> controllers = new List<IMyShipController>();
+            blockGroup.GetBlocksOfType<IMyShipController>(controllers);
+            if (controllers.Count == 0)
+                throw new Exception("Error: " + blockGroupName + " does not contain a cockpit or remote control block.");
+            cockpit = controllers[0];
+
+            List<IMyTextPanel> textPanels = new List<IMyTextPanel>();
+            blockGroup.GetBlocksOfType<IMyTextPanel>(textPanels);
+            if (textPanels.Count > 0)
             {
+                textPanel = textPanels[0];
                 textPanel.Font = "Monospace";
                 textPanel.FontSize = 1.0f;
                 textPanel.ShowPublicTextOnScreen();
             }
 
-            // Gyroscopes
-            IMyBlockGroup group = GetBlockGroupByName(configReader.Get<string>("gyroGroupName"));
-            var list = new List<IMyTerminalBlock>();
-            group.GetBlocks(list);
-            gyros = list.ConvertAll(x => (IMyGyro)x);
-            if (list.Count < 0)
-                Echo("Warning: no gyroscopes were found in the BlockGroup");
-        }
-
-        private IMyTerminalBlock GetBlockByName(string name, bool optional = false)
-        {
-            IMyTerminalBlock block = GridTerminalSystem.GetBlockWithName(name);
-            if (!optional && block == null)
-                Helpers.PrintException("Error: Unable to find block with name: " + name);
-            return block;
-        }
-
-        private IMyBlockGroup GetBlockGroupByName(string name, bool optional = false)
-        {
-            IMyBlockGroup group = GridTerminalSystem.GetBlockGroupWithName(name);
-            if (!optional && group == null)
-                Helpers.PrintException("Error: Unable to find group with name: " + name);
-            return group;
+            blockGroup.GetBlocksOfType<IMyGyro>(gyros);
+            if (gyros.Count == 0)
+                throw new Exception("Error: " + blockGroupName + " does not contain any gyroscopes.");
         }
     }
 }
